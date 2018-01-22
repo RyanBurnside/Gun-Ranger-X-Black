@@ -1,0 +1,440 @@
+Strict
+
+' Ideas section-----------------------------------------------------------------
+' Cells get nudged and snap back when being shot IMPORTANT MAKE THEM FUN TO SHOOT FLASH WIGGLE WHATEVER WHEN SHOT
+' Add aimed shots in the bursts and also reverse firing like ikaruga lasers
+' Animated diagonal warning scroller prior to bosses
+' Before boss stats show how many of each polygon/weapon was created (created before the stats show) seems more interesting as a gamble (slots or flipping cards)
+' popcorn enemies between bosses
+' Maybe each cell gets to choose their own shot shape for their bursts
+' Maybe X shaped 1970's style lens flair that shimmers using perlin noise
+
+' 1D perlin noise based line shimmer (1 generator for all)
+
+' Card base boss choice (you shoot a card to reviel a boss, you get shown what you didn't pick
+' "Daily Boss" a boss that uses the current month and day as a seed to encourage daily play
+' Multiple enemy shot types like homing missle and cluster laser
+' Droning boss background hum that changes frequency on movement speed
+
+Import math
+Import hitbox
+Import shot
+Import player
+Import cell
+Import cellBody
+Import vec2
+Import ticker
+Import objectManager
+
+Import mojo.keycodes
+Import misc
+Import mojo2
+
+
+Function Main:Int()
+	New Game
+	Return 0
+End
+
+Class Game Extends App
+	Field lineTexture:Image[3]
+	Field shotTexture:Image[4]
+	Const maxCellSides:Float = 8
+	Const cellSideLength:Float = 32
+	Field cellImages:Image[maxCellSides - 2]
+	
+	Field windowCanvas:Canvas 'The window's canvas
+	Field canvas:Canvas       'The game world's canvas
+	Field canvasImage:Image   'A special image bound to game world's canvas
+	
+	Field numPlaying:Int = 1
+	Field players:Player[4]
+	
+	Field cells:ObjectManager<Cell>
+	Field cellBodies:ObjectManager<CellBody>
+	
+	Field playerShots:ObjectManager<Shot>
+	Field enemyShots:ObjectManager<Shot>
+	
+	Field screenRot:Float = 0.0
+	Field colors:RGB[6]
+	
+	Field level:Int = 1
+	
+
+	
+	Method OnCreate:Int()		
+		SetUpdateRate(60)
+		Seed = Millisecs()
+		lineTexture = Image.LoadFrames("glow.png", 3.0, False, 0.5, 0.5, Image.Filter)
+		shotTexture = Image.LoadFrames("bullet_textures.png", 4, False, .5, .5, Image.Filter)
+		
+		numPlaying = 1
+		players = [New Player(), New Player(), New Player(), New Player()]
+
+		playerShots = New ObjectManager<Shot>
+		enemyShots = New ObjectManager<Shot>
+		cells = New ObjectManager<Cell>
+		cellBodies = New ObjectManager<CellBody>
+		
+		canvasImage = New Image(600, 800)	
+		canvas = New Canvas(canvasImage)
+		SetDeviceWindow(6000, 6000, 2|4) ' A bug prevents the clipping area from resizing once set, so set it HUGE initially
+		windowCanvas = New Canvas()
+		SetDeviceWindow(1024, 768, 2|4)  ' Now, set it to a reasonable default
+		
+		GenerateColors()
+		GenerateTextures()
+		
+		StartLevel(100)
+		Return 0
+	End
+	
+	Method StartLevel:Void(num:Int)
+		cells.Clear()
+		playerShots.data.Clear()
+		enemyShots.data.Clear()
+		GenerateColors()
+		GenerateTextures()
+		Local temp:Hitbox = New Hitbox(canvasImage.Width(), canvasImage.Height() *.5, canvasImage.Width() * .5, canvasImage.Height() * .25)
+		Local bossMoveBox:Hitbox = New Hitbox(canvasImage.Width() * .25, 
+		                               canvasImage.Height() * .25, 
+		                               canvasImage.Width() * .5, 
+		                               canvasImage.Height() * .25)
+		Local c:Cell = New Cell(canvasImage.Width() * .5, canvasImage.Height() * .5, Rnd(0, 360), maxCellSides, cellSideLength, RndColor())
+		
+		Local boss:CellBody = New CellBody(temp.GetX(), temp.GetY(), c)
+		boss.GenerateRandomCells(num, temp.GetWidth(), temp.GetHeight())
+		boss.mover = New CellBodyMoverBoss(boss, bossMoveBox)
+		cellBodies.data.PushLast(boss)
+		For Local c:Cell = Eachin(cells.data)
+			c.color = c.GetSides() Mod colors.Length()
+		Next
+		PositionPlayers()
+	End
+	
+	Method PositionPlayers:Void()
+		Local sub:Float = canvas.Width() / numPlaying + 1
+		For Local i:Int = 0 To numPlaying -1
+			players[i].pos.x = (sub * .5) + i * sub
+			players[i].pos.y = canvas.Height() * .75
+		End
+	End
+
+	Method GenerateColors:Void()
+		'Makes the colors for the cells, should be called per boss
+		colors[0] = MakeHSL(Rnd(), .65, Rnd(.55, .75))
+		colors[1] = MakeHSL(Rnd(), .65, Rnd(.55, .75))
+		colors[2] = MakeHSL(Rnd(), .65, Rnd(.55, .75))
+		colors[3] = MakeHSL(Rnd(), .65, Rnd(.55, .75))
+		colors[4] = MakeHSL(Rnd(), .65, Rnd(.55, .75))
+		colors[5] = MakeHSL(Rnd(), .65, Rnd(.55, .75))
+	End
+	
+	Method GenerateTextures:Void()
+		'Ensure colors are generated prior to calling this
+		cellImages = New Image[maxCellSides - 2] ' 0 - 8 needs 6 slots for 3 - 8
+		For Local i:Int = 0 To cellImages.Length() - 1
+			Local numSides:Int = i + 3
+			Local width:Int = Ceil((NgonCircumscribedRadius(numSides, cellSideLength) * 2.0) + lineTexture[0].Height())
+			cellImages[i] = New Image(width, width)
+			Local c:Canvas = New Canvas(cellImages[i])
+			c.SetBlendMode(BlendMode.Additive)
+			Local colorIndex:Int = numSides Mod colors.Length()
+			c.SetColor(colors[colorIndex].r, colors[colorIndex].g, colors[colorIndex].b, 1.0)
+			c.Clear(0, 0, 0, 1)
+			Local cell:Cell = New Cell(width * .5, width * .5, 0.0, numSides, cellSideLength, colorIndex)
+			DrawCell(cell, c)
+			c.Flush()
+		Next
+	End
+	
+	Method RndColor:Int()
+		Return Rnd(colors.Length())
+	End
+	
+	Method OnRender:Int()
+		DrawGame()
+		Return 0
+	End
+	
+	Method HandleHotKeys:Void()
+		If KeyHit(KEY_R) Then screenRot += 90.0
+		If screenRot > 270 Then screenRot = 0.0
+	End
+	
+	Method OnUpdate:Int()	
+		UpdateEnemyShots()
+		UpdatePlayerShots()
+		HandleHotKeys()
+		UpdatePlayers()
+		UpdateCells()
+		UpdateCellBodies()
+		
+		PlayerShotCellCheck()
+
+		MarkOffscreenShots(playerShots)
+		MarkOffscreenShots(enemyShots)
+		playerShots.CullDead()
+		enemyShots.CullDead()
+		cells.CullDead()
+		Return 0
+	End
+	
+	Method UpdateEnemyShots:Void()
+		For Local s:Shot = Eachin(enemyShots.data)
+			s.Move()
+		Next
+	End
+	
+	Method UpdatePlayerShots:Void()
+		For Local s:Shot = Eachin playerShots.data
+			s.Move()
+		Next
+	End
+	
+	Method EnemyShotPlayerCheck:Void()
+	
+	End
+	
+	
+	Method PlayerShotCellCheck:Void()
+		For Local s:Shot = Eachin(playerShots.data)
+			For Local c:Cell = Eachin(cells.data)
+				If CirclesCollide(s.pos.x, s.pos.y, s.radius, c.pos.x, c.pos.y, c.radius) Then
+					c.HP -= 1
+					If c.HP <= 0 Then c.dead = True
+					s.dead = True
+				End
+			Next
+		Next
+	End
+	
+	Method UpdatePlayers:Void()
+		For Local i:Int = 0 To numPlaying - 1
+			players[i].Update()
+			ContainPlayer(players[i])
+			If players[i].shotTicker.ready Then
+				
+				playerShots.data.PushLast(New Shot(players[i].pos.x, players[i].pos.y, 24.0, 90, 16, 0, 1))
+				players[i].shotTicker.Reset()
+			End
+		End
+	End
+	
+	Method UpdateCells:Void()
+		For Local c:Cell = Eachin(cells.data)
+			c.Update()
+			If c.shotTicker.ready Then
+				Local temp:Shot = New Shot(0, 0, 4.0, 0.0, 8, c.color, Rnd(0, 4))
+				BurstFire(enemyShots.data, c.pos.x, c.pos.y, c.aimDirection, c.GetSides(), temp)
+				c.shotTicker.Reset()
+			End
+		Next
+	End
+	
+	Method UpdateCellBodies:Void()
+		For Local cb:CellBody = Eachin(cellBodies.data)
+			cb.Update()
+			
+			'update cells
+			For Local c:Cell = Eachin(cb.cells)
+				c.Update()
+				If c.shotTicker.ready Then
+					Local temp:Shot = New Shot(0, 0, 4.0, 0.0, 8, c.color, Rnd(0, 4))
+					BurstFire(enemyShots.data, c.finalPosition.x, c.finalPosition.y, c.aimDirection, c.GetSides(), temp)
+					c.shotTicker.Reset()
+				End
+			Next
+		Next
+		'update cells
+	End
+	
+	Method ContainPlayer:Void(p:Player)
+		'Function to make sure players stay inside border
+		If p.pos.x - p.radius < 0.0 Then p.pos.x = p.radius
+		If p.pos.y - p.radius < 0.0 Then p.pos.y = p.radius
+		If p.pos.x + p.radius > canvas.Width() Then p.pos.x = canvas.Width() - p.radius
+		If p.pos.y + p.radius > canvas.Height() Then p.pos.y = canvas.Height() - p.radius
+	End
+	
+	Method OnResize:Int()		
+		canvas.Flush()
+		windowCanvas.Flush()
+		Return 0
+	End
+	
+	Method MarkOffscreenShots:Void(o:ObjectManager<Shot>)
+		'Mark offscreen shots for player and enemy for death (does not kill just sets flag)
+		Local shotBottom:Float
+		Local shotTop:Float 
+		Local shotRight:Float
+		Local shotLeft:Float
+		For Local s:Shot = Eachin(o.data)
+			shotBottom = s.pos.y + shotTexture[0].Height() * s.imageScale
+			shotTop = s.pos.y - shotTexture[0].Height() * s.imageScale
+			shotRight = s.pos.x + shotTexture[0].Height() * s.imageScale
+			shotLeft = s.pos.x - shotTexture[0].Height() * s.imageScale
+			' Above
+			If shotBottom < 0 Then s.dead = True
+			' Left
+			If shotLeft > canvasImage.Width() Then s.dead = True
+			' Right
+			If shotRight < 0 Then s.dead = True 
+			' Below
+			If shotTop > canvasImage.Height() Then s.dead = True
+		Next
+	End
+	
+	Method DrawGame:Void()
+		canvas.Clear(0, 0, 0, 1.0)
+		canvas.SetBlendMode(BlendMode.Additive)
+		canvas.SetAlpha(1.0)
+		
+		DrawPlayers()
+		'Local xAmp:Float = canvasImage.Width() * .5
+		'Local yAmp:Float = canvasImage.Height() * .5
+		
+		'Local flicker:Float = SCurve((1.0 + FourOctaveNoise(noisePulse)) / 2.0)
+		
+		'canvas.SetColor(flicker, flicker, flicker)
+		'canvas.DrawCircle(xAmp + FourOctaveNoise(noiseX, xAmp * .25), 
+			               'yAmp + FourOctaveNoise(noiseY, xAmp * .25), 33)
+
+		For Local cell:Cell = Eachin(cells.data)
+			canvas.SetColor(1.0, 1.0, 1.0)
+			DrawCellSprite(cell)
+		Next
+		
+		For Local cb:CellBody = Eachin(cellBodies.data)
+			DrawCellBody(cb)
+		Next
+		
+		For Local s:Shot = Eachin(enemyShots.data)
+			DrawShot(s)
+		Next
+		
+		For Local s:Shot = Eachin(playerShots.data)
+			DrawShot(s)
+		Next
+		
+
+
+		canvas.Flush()
+		windowCanvas.Clear(.1, .1, .1, 1.0)
+
+		Local scale:Float = DeviceHeight() / Float(canvasImage.Height())
+		ShapeAndDrawCanvas()	
+		windowCanvas.Flush()
+	End
+
+	Method ShapeAndDrawCanvas:Void()
+		Local deltaX:Float = windowCanvas.Width() / Float(canvasImage.Width())
+		Local deltaY:Float = windowCanvas.Height() / Float(canvasImage.Height())
+		
+		' Adjustment for rotated canvas
+		If screenRot = 90.0 Or screenRot = 270.0
+			deltaX = windowCanvas.Height() / Float(canvasImage.Width())
+			deltaY = windowCanvas.Width() / Float(canvasImage.Height())
+		End
+		
+		Local scale:Float = Min(deltaX, deltaY)
+		windowCanvas.DrawImage(canvasImage, DeviceWidth() * .5, DeviceHeight() * .5, screenRot, scale, scale)
+	End
+	
+	Method DrawLine:Void(x:Float, y:Float, x2:Float, y2:Float, can:Canvas = canvas)		
+		Local dist:Float = Sqrt(((x2-x) * (x2-x)) + ((y2-y) * (y2-y)))
+		Local dir:Float = ATan2(y2-y, x-x2)
+		Local midX:Float = (x+x2) * .5
+		Local midY:Float = (y+y2) * .5
+		Local midScale:Float = dist  / Float(lineTexture[1].Height())
+		'Endcap
+			can.DrawImage(lineTexture[2], x, y, dir)
+		'Middle
+			can.DrawImage(lineTexture[1], midX, midY, dir, midScale, 1.0)
+		'Endcap
+			can.DrawImage(lineTexture[0], x2, y2, dir)
+	End
+	
+	Method DrawPlayers:Void()
+		For Local i:Int = 0 To numPlaying -1
+			canvas.SetColor(players[i].color.r, players[i].color.g, players[i].color.b)
+			DrawPlayer(players[i])
+		Next
+	End
+	
+	Method DrawPlayer:Void(p:Player)
+		Local tipX:Float = p.pos.x
+		Local tipY:Float = p.pos.y - 16.0
+		Local rWingX:Float = p.pos.x + 16.0
+		Local rWingY:Float = p.pos.y + 16.0
+		Local lWingX:Float = p.pos.x - 16.0
+		Local lWingY:Float = p.pos.y + 16.0
+		Local bottomX:Float = p.pos.x
+		Local bottomY:Float = p.pos.y + 10.0
+		
+		DrawLine(tipX, tipY, rWingX, rWingY)
+		DrawLine(tipX, tipY, lWingX, lWingY)
+		DrawLine(rWingX, rWingY, bottomX, bottomY)
+		DrawLine(lWingX, lWingY, bottomX, bottomY)
+		DrawLine(p.pos.x, p.pos.y, p.pos.x, p.pos.y)
+	End
+		
+	Method DrawCell:Void(cell:Cell, can:Canvas = canvas)
+		' Draws a cell in the mass provides optional canvas for prerendering to a different target
+		' This function is used to generate the sprites for the cell images
+
+		Local cx:Float = cell.pos.x
+		Local cy:Float = cell.pos.y
+		Local sub:Float = 360.0 / cell.GetSides()
+		Local angle:Float = 0.0
+		For Local i:Int = 0 To cell.GetSides() - 1
+			Local angle:Float = cell.GetRotDirection() + i * sub
+			DrawLine(cx + Cos(angle) * cell.radius,
+					 cy + Sin(angle) * cell.radius,
+					 cx + Cos(angle + sub) * cell.radius,
+					 cy + Sin(angle + sub) * cell.radius,
+					 can)
+			DrawLine(cx + Cos(angle) * cell.radius,
+					 cy + Sin(angle) * cell.radius,
+					 cx,
+					 cy,
+					 can)
+		Next
+		
+	End
+	
+	Method DrawCellSprite:Void(cell:Cell, can:Canvas = canvas)
+		'This draws the cell from the cell images master list		
+		can.DrawImage(cellImages[cell.GetSides() - 3], cell.pos.x, cell.pos.y, -cell.GetRotDirection())
+	End
+	
+	Method DrawCellBody:Void(cb:CellBody, can:Canvas = canvas)
+		' This draws the CellBody using the CellBodies's direction and postiion
+		can.PushMatrix()
+		can.TranslateRotate(cb.pos.x, cb.pos.y, -cb.rot)
+		can.DrawCircle(0, 0, 2)
+		For Local c:Cell = Eachin(cb.cells)
+			DrawCellSprite(c, can)
+		Next
+		can.PopMatrix()		
+	End
+	
+	Method DrawShot:Void(shot:Shot)
+		canvas.SetColor(colors[shot.imageColor].r, colors[shot.imageColor].g, colors[shot.imageColor].b)
+		canvas.DrawImage(shotTexture[shot.imageFrame], shot.pos.x, shot.pos.y, ATan2(-shot.velocity.y, shot.velocity.x), shot.imageScale, shot.imageScale)
+		'canvas.DrawRect(shot.pos.x - shot.radius, shot.pos.y - shot.radius, shot.radius * 2.0, shot.radius * 2.0)
+	End
+	
+	Method BurstFire:Void(bulletList:Deque<Shot>, x:Float, y:Float, aim:Float, numShots:Float, shotTemplate:Shot)
+		Local subAngle:Float = 360.0 / numShots
+		For Local i:Float = 0 To numShots -1
+			bulletList.PushLast(New Shot(x, y, shotTemplate.velocity.GetMag(), aim + i * subAngle, shotTemplate.radius, shotTemplate.imageColor, shotTemplate.imageFrame))
+		Next
+	End
+End
+
+
+
+
+
