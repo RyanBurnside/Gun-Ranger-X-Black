@@ -15,6 +15,9 @@ Strict
 ' "Daily Boss" a boss that uses the current month and day as a seed to encourage daily play
 ' Multiple enemy shot types like homing missle and cluster laser
 ' Droning boss background hum that changes frequency on movement speed
+' Honeycomb scrolling background (very faint gray possibly the same texture as the cells)
+' Calculate and use lightest color for the bullets when colors are generated
+' Overdrive mode when boss is nearly dead (ensure it's fair though, faster shots aimed reverse ikaruga chassers, missles etc)
 
 Import math
 Import hitbox
@@ -50,7 +53,7 @@ Class Game Extends App
 	Field numPlaying:Int = 1
 	Field players:Player[4]
 	
-	Field cells:ObjectManager<Cell>
+	'Field cells:ObjectManager<Cell>
 	Field cellBodies:ObjectManager<CellBody>
 	
 	Field playerShots:ObjectManager<Shot>
@@ -60,8 +63,6 @@ Class Game Extends App
 	Field colors:RGB[6]
 	
 	Field level:Int = 1
-	
-
 	
 	Method OnCreate:Int()		
 		SetUpdateRate(60)
@@ -74,7 +75,7 @@ Class Game Extends App
 
 		playerShots = New ObjectManager<Shot>
 		enemyShots = New ObjectManager<Shot>
-		cells = New ObjectManager<Cell>
+		'cells = New ObjectManager<Cell>
 		cellBodies = New ObjectManager<CellBody>
 		
 		canvasImage = New Image(600, 800)	
@@ -86,14 +87,15 @@ Class Game Extends App
 		GenerateColors()
 		GenerateTextures()
 		
-		StartLevel(100)
+		StartLevel(level)
 		Return 0
 	End
 	
 	Method StartLevel:Void(num:Int)
-		cells.Clear()
 		playerShots.data.Clear()
 		enemyShots.data.Clear()
+		cellBodies.Clear()
+		
 		GenerateColors()
 		GenerateTextures()
 		Local temp:Hitbox = New Hitbox(canvasImage.Width(), canvasImage.Height() *.5, canvasImage.Width() * .5, canvasImage.Height() * .25)
@@ -107,9 +109,7 @@ Class Game Extends App
 		boss.GenerateRandomCells(num, temp.GetWidth(), temp.GetHeight())
 		boss.mover = New CellBodyMoverBoss(boss, bossMoveBox)
 		cellBodies.data.PushLast(boss)
-		For Local c:Cell = Eachin(cells.data)
-			c.color = c.GetSides() Mod colors.Length()
-		Next
+		
 		PositionPlayers()
 	End
 	
@@ -168,16 +168,23 @@ Class Game Extends App
 		UpdatePlayerShots()
 		HandleHotKeys()
 		UpdatePlayers()
-		UpdateCells()
+
 		UpdateCellBodies()
 		
 		PlayerShotCellCheck()
+		EnemyShotPlayerCheck()
 
 		MarkOffscreenShots(playerShots)
 		MarkOffscreenShots(enemyShots)
 		playerShots.CullDead()
 		enemyShots.CullDead()
-		cells.CullDead()
+		cellBodies.CullDead()
+		
+		If cellBodies.Length() < 1 Then
+			level = level + 1
+			StartLevel(level * 3)
+		Endif
+		
 		Return 0
 	End
 	
@@ -194,18 +201,13 @@ Class Game Extends App
 	End
 	
 	Method EnemyShotPlayerCheck:Void()
-	
+
 	End
-	
 	
 	Method PlayerShotCellCheck:Void()
 		For Local s:Shot = Eachin(playerShots.data)
-			For Local c:Cell = Eachin(cells.data)
-				If CirclesCollide(s.pos.x, s.pos.y, s.radius, c.pos.x, c.pos.y, c.radius) Then
-					c.HP -= 1
-					If c.HP <= 0 Then c.dead = True
-					s.dead = True
-				End
+			For Local c:CellBody = Eachin(cellBodies.data)
+				s.dead = c.DamageTouching(s.pos, s.radius)
 			Next
 		Next
 	End
@@ -222,26 +224,16 @@ Class Game Extends App
 		End
 	End
 	
-	Method UpdateCells:Void()
-		For Local c:Cell = Eachin(cells.data)
-			c.Update()
-			If c.shotTicker.ready Then
-				Local temp:Shot = New Shot(0, 0, 4.0, 0.0, 8, c.color, Rnd(0, 4))
-				BurstFire(enemyShots.data, c.pos.x, c.pos.y, c.aimDirection, c.GetSides(), temp)
-				c.shotTicker.Reset()
-			End
-		Next
-	End
-	
 	Method UpdateCellBodies:Void()
 		For Local cb:CellBody = Eachin(cellBodies.data)
 			cb.Update()
 			
 			'update cells
-			For Local c:Cell = Eachin(cb.cells)
-				c.Update()
+			For Local c:Cell = Eachin(cb.cells.data)
+				
+				'We need to check which Cells are ready to fire and let them fire
 				If c.shotTicker.ready Then
-					Local temp:Shot = New Shot(0, 0, 4.0, 0.0, 8, c.color, Rnd(0, 4))
+					Local temp:Shot = New Shot(0, 0, 8.0, 0.0, 8, c.color, Rnd(0, 4))
 					BurstFire(enemyShots.data, c.finalPosition.x, c.finalPosition.y, c.aimDirection, c.GetSides(), temp)
 					c.shotTicker.Reset()
 				End
@@ -292,22 +284,10 @@ Class Game Extends App
 		canvas.SetAlpha(1.0)
 		
 		DrawPlayers()
-		'Local xAmp:Float = canvasImage.Width() * .5
-		'Local yAmp:Float = canvasImage.Height() * .5
-		
-		'Local flicker:Float = SCurve((1.0 + FourOctaveNoise(noisePulse)) / 2.0)
-		
-		'canvas.SetColor(flicker, flicker, flicker)
-		'canvas.DrawCircle(xAmp + FourOctaveNoise(noiseX, xAmp * .25), 
-			               'yAmp + FourOctaveNoise(noiseY, xAmp * .25), 33)
-
-		For Local cell:Cell = Eachin(cells.data)
-			canvas.SetColor(1.0, 1.0, 1.0)
-			DrawCellSprite(cell)
-		Next
 		
 		For Local cb:CellBody = Eachin(cellBodies.data)
 			DrawCellBody(cb)
+			canvas.DrawCircle(cb.pos.x, cb.pos.y, 16)
 		Next
 		
 		For Local s:Shot = Eachin(enemyShots.data)
@@ -414,7 +394,7 @@ Class Game Extends App
 		can.PushMatrix()
 		can.TranslateRotate(cb.pos.x, cb.pos.y, -cb.rot)
 		can.DrawCircle(0, 0, 2)
-		For Local c:Cell = Eachin(cb.cells)
+		For Local c:Cell = Eachin(cb.cells.data)
 			DrawCellSprite(c, can)
 		Next
 		can.PopMatrix()		

@@ -18,7 +18,7 @@ Class Cell
 	Field radius:Float
 	Field insideRadius:Float
 	Field color:Int
-	Field dead:Bool
+	Field dead:Bool = False
 	Field HP:Int = 15
 	Field pointValue:Int = 300
 	
@@ -31,6 +31,14 @@ Class Cell
 	Field numSides:Int = 0
 	
 	Public
+	
+	Method Damage:Void(hpRemoved:Float = 1)
+		HP -= hpRemoved
+		If HP < 0 Then 
+			HP = 0
+			dead = True
+		Endif
+	End
 	
 	Method GetRotDirection:Float()
 		Return rotDirection

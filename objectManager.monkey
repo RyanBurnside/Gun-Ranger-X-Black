@@ -7,8 +7,12 @@ Class ObjectManager<T>
 		data = New Deque<T>
 	End
 	
+	Method New(newData:Deque<T>)
+		data = newData
+	End
+	
 	Method Length:Int()
-		data.Length()
+		Return data.Length()
 	End
 	
 	Method Clear:Void()
