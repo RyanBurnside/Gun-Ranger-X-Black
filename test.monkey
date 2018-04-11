@@ -1,7 +1,6 @@
 Strict
 
 ' Ideas section-----------------------------------------------------------------
-' Cells get nudged and snap back when being shot IMPORTANT MAKE THEM FUN TO SHOOT FLASH WIGGLE WHATEVER WHEN SHOT
 ' Add aimed shots in the bursts and also reverse firing like ikaruga lasers
 ' Animated diagonal warning scroller prior to bosses
 ' Before boss stats show how many of each polygon/weapon was created (created before the stats show) seems more interesting as a gamble (slots or flipping cards)
@@ -18,6 +17,7 @@ Strict
 ' Honeycomb scrolling background (very faint gray possibly the same texture as the cells)
 ' Calculate and use lightest color for the bullets when colors are generated
 ' Overdrive mode when boss is nearly dead (ensure it's fair though, faster shots aimed reverse ikaruga chassers, missles etc)
+
 
 Import math
 Import hitbox
@@ -385,7 +385,7 @@ Class Game Extends App
 	End
 	
 	Method DrawCellSprite:Void(cell:Cell, can:Canvas = canvas)
-		'This draws the cell from the cell images master list		
+		'This draws the cell from the cell images master list
 		can.DrawImage(cellImages[cell.GetSides() - 3], cell.pos.x, cell.pos.y, -cell.GetRotDirection())
 	End
 	
@@ -395,8 +395,15 @@ Class Game Extends App
 		can.TranslateRotate(cb.pos.x, cb.pos.y, -cb.rot)
 		can.DrawCircle(0, 0, 2)
 		For Local c:Cell = Eachin(cb.cells.data)
+			If c.lifeFlasher.Ready()
+				can.SetAlpha(1.0)
+			Else
+				Local transparency:Float = .5 + (c.lifeFlasher.PercentReady()) * .5
+				can.SetAlpha(transparency)				
+			End
 			DrawCellSprite(c, can)
 		Next
+		can.SetAlpha(1.0)
 		can.PopMatrix()		
 	End
 	

@@ -15,6 +15,14 @@ Class Ticker
 		ready = False
 	End
 	
+	Method Ready:Bool()
+		Return ready
+	End
+	
+	Method PercentReady:Float()
+		Return value / Float(max)
+	End
+	
 	Method Tick:Void()
 		If Not ready
 			If value < max Then

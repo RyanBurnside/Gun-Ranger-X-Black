@@ -15,7 +15,7 @@ Class CellBodyMoverBoss Implements CellBodyMover
 	Field noiseX:FourOctaveNoiseMover
 	Field noiseY:FourOctaveNoiseMover
 
-	Field rotNoise:Float = 0.0
+	Field rotNoise:Float = 0.0 + Rnd()
 	
 	Method New(CellBodyParent:CellBody, moveBox:Hitbox)
 		parent = CellBodyParent
@@ -29,7 +29,7 @@ Class CellBodyMoverBoss Implements CellBodyMover
 				
 		parent.pos.x = noiseX.GetX()
 		parent.pos.y = noiseY.GetY()
-		rotNoise += .008
+		rotNoise += .02
 		parent.rot = FourOctaveNoise(rotNoise, 360.0)
 	End
 End

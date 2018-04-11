@@ -24,11 +24,12 @@ Class Cell
 	
 	Field shotTicker:Ticker
 	Field aimDirection:Float = 0.0
-	
+	Field lifeFlasher:Ticker = New Ticker(3, 3)	
 	
 	Private 
 	Field rotDirection:Float = 0
 	Field numSides:Int = 0
+
 	
 	Public
 	
@@ -38,6 +39,8 @@ Class Cell
 			HP = 0
 			dead = True
 		Endif
+		
+		If lifeFlasher.Ready() Then lifeFlasher.Reset()
 	End
 	
 	Method GetRotDirection:Float()
@@ -82,7 +85,7 @@ Class Cell
 			aimDirection += 5.0
 		End
 		Move()
-
+		lifeFlasher.Tick()
 	End
 	
 	Method Move:Void()
