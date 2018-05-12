@@ -3,8 +3,8 @@ Strict
 
 Class Vec2
 
-	Field x:Float
-	Field y:Float
+	Field x:Float = 0
+	Field y:Float = 0
 	
 	Method New(xx:Float = 0, yy:Float = 0)
 		Self.x = xx

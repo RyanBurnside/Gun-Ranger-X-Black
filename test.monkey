@@ -17,7 +17,8 @@ Strict
 ' Honeycomb scrolling background (very faint gray possibly the same texture as the cells)
 ' Calculate and use lightest color for the bullets when colors are generated
 ' Overdrive mode when boss is nearly dead (ensure it's fair though, faster shots aimed reverse ikaruga chassers, missles etc)
-
+' Sparks from bullet hitting enemy
+' Explosions
 
 Import math
 Import hitbox
@@ -28,7 +29,7 @@ Import cellBody
 Import vec2
 Import ticker
 Import objectManager
-
+Import strokeFont
 Import mojo.keycodes
 Import misc
 Import mojo2
@@ -53,6 +54,8 @@ Class Game Extends App
 	Field numPlaying:Int = 1
 	Field players:Player[4]
 	
+	Field mainFont:GlowStrokeFont = New GlowStrokeFont()
+	
 	'Field cells:ObjectManager<Cell>
 	Field cellBodies:ObjectManager<CellBody>
 	
@@ -62,16 +65,18 @@ Class Game Extends App
 	Field screenRot:Float = 0.0
 	Field colors:RGB[6]
 	
-	Field level:Int = 1
+	Field level:Int = 12
 	
-	Method OnCreate:Int()		
+	Method OnCreate:Int()			
 		SetUpdateRate(60)
 		Seed = Millisecs()
 		lineTexture = Image.LoadFrames("glow.png", 3.0, False, 0.5, 0.5, Image.Filter)
 		shotTexture = Image.LoadFrames("bullet_textures.png", 4, False, .5, .5, Image.Filter)
-		
 		numPlaying = 1
 		players = [New Player(), New Player(), New Player(), New Player()]
+
+
+		mainFont = New GlowStrokeFont() 'TESTING ONLY REMOVE ME LATER AND INITIALIZE IN THE MEMBERS SECTION
 
 		playerShots = New ObjectManager<Shot>
 		enemyShots = New ObjectManager<Shot>
@@ -105,10 +110,13 @@ Class Game Extends App
 		                               canvasImage.Height() * .25)
 		Local c:Cell = New Cell(canvasImage.Width() * .5, canvasImage.Height() * .5, Rnd(0, 360), maxCellSides, cellSideLength, RndColor())
 		
+		
+		For Local i:Int = 0 To 1
 		Local boss:CellBody = New CellBody(temp.GetX(), temp.GetY(), c)
 		boss.GenerateRandomCells(num, temp.GetWidth(), temp.GetHeight())
 		boss.mover = New CellBodyMoverBoss(boss, bossMoveBox)
 		cellBodies.data.PushLast(boss)
+		Next
 		
 		PositionPlayers()
 	End
@@ -287,7 +295,7 @@ Class Game Extends App
 		
 		For Local cb:CellBody = Eachin(cellBodies.data)
 			DrawCellBody(cb)
-			canvas.DrawCircle(cb.pos.x, cb.pos.y, 16)
+			'canvas.DrawCircle(cb.pos.x, cb.pos.y, 16)
 		Next
 		
 		For Local s:Shot = Eachin(enemyShots.data)
@@ -297,13 +305,14 @@ Class Game Extends App
 		For Local s:Shot = Eachin(playerShots.data)
 			DrawShot(s)
 		Next
-		
 
-
+		DrawGlowStrokeFont(32, 32, "ABCDEFGHIJKLMNO", 24.0, mainFont, canvas)
+		DrawGlowStrokeFont(32, 64, "PQRSTUVWXYZ", 24.0, mainFont, canvas)
 		canvas.Flush()
 		windowCanvas.Clear(.1, .1, .1, 1.0)
 
 		Local scale:Float = DeviceHeight() / Float(canvasImage.Height())
+
 		ShapeAndDrawCanvas()	
 		windowCanvas.Flush()
 	End
@@ -340,6 +349,21 @@ Class Game Extends App
 		For Local i:Int = 0 To numPlaying -1
 			canvas.SetColor(players[i].color.r, players[i].color.g, players[i].color.b)
 			DrawPlayer(players[i])
+		Next
+	End
+	
+	Method DrawChar:Void(x:Float, y:Float, c:Int, scale:Float, f:GlowStrokeFont = mainFont, can:Canvas)
+		For Local s:Stroke = Eachin f.GetChar(c)
+			DrawLine(x + s.pt1.x * scale, y + s.pt1.y * scale, x + s.pt2.x * scale, y + s.pt2.y * scale, can)
+		Next
+	End
+	
+	Method DrawGlowStrokeFont:Void(x:Float, y:Float, s:String, scale:Float = 24.0, f:GlowStrokeFont = mainFont, can:Canvas)
+		Local counter:Float = 0.0
+		Local nextX:Float = x
+		For Local c:Int = Eachin s.ToChars()
+			nextX += scale + (scale / 2.0)
+			DrawChar(nextX, y, c, scale, f, can)
 		Next
 	End
 	
@@ -393,7 +417,7 @@ Class Game Extends App
 		' This draws the CellBody using the CellBodies's direction and postiion
 		can.PushMatrix()
 		can.TranslateRotate(cb.pos.x, cb.pos.y, -cb.rot)
-		can.DrawCircle(0, 0, 2)
+		'can.DrawCircle(0, 0, 2)
 		For Local c:Cell = Eachin(cb.cells.data)
 			If c.lifeFlasher.Ready()
 				can.SetAlpha(1.0)
