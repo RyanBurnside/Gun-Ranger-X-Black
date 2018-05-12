@@ -111,7 +111,7 @@ Class Game Extends App
 		Local c:Cell = New Cell(canvasImage.Width() * .5, canvasImage.Height() * .5, Rnd(0, 360), maxCellSides, cellSideLength, RndColor())
 		
 		
-		For Local i:Int = 0 To 1
+		For Local i:Int = 0 To 0
 		Local boss:CellBody = New CellBody(temp.GetX(), temp.GetY(), c)
 		boss.GenerateRandomCells(num, temp.GetWidth(), temp.GetHeight())
 		boss.mover = New CellBodyMoverBoss(boss, bossMoveBox)
@@ -308,6 +308,9 @@ Class Game Extends App
 
 		DrawGlowStrokeFont(32, 32, "ABCDEFGHIJKLMNO", 24.0, mainFont, canvas)
 		DrawGlowStrokeFont(32, 64, "PQRSTUVWXYZ", 24.0, mainFont, canvas)
+		DrawGlowStrokeFont(32, 96, "0123456789", 24.0, mainFont, canvas)
+		DrawGlowStrokeFont(32, 128, "WARNING WARNING", 24.0, mainFont, canvas)
+				
 		canvas.Flush()
 		windowCanvas.Clear(.1, .1, .1, 1.0)
 
