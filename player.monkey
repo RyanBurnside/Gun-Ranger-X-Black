@@ -17,6 +17,7 @@ Class Player
 	Field speed:Float = 3
 	Field lives:Int
 	Field shotTicker:Ticker
+	Field invincibleTicker:Ticker 'Invincible unless ticker is in Ready state
 	Field color:RGB
 	Field score:Int
 	Field radius:Float
@@ -26,6 +27,7 @@ Class Player
 		lives = 3
 		radius = 4
 		shotTicker = New Ticker(3)
+		invincibleTicker = New Ticker(60, 30)
 		color = col
 		score = 0
 	End
@@ -37,8 +39,28 @@ Class Player
 		Else 
 			speed = 4
 		End
-		
+		invincibleTicker.Tick()
 		Move()
+	End
+	
+	Method GetInvincible:Bool()
+		Return Not invincibleTicker.Ready()
+	End
+	
+	Method SetInvincible:Void()
+		invincibleTicker.Reset()
+	End
+	
+	Method IsDead:Bool()
+		Return lives < 0
+	End
+	
+	Method TakeLife:Void()
+		If (Not GetInvincible()) Then 
+			lives -= 1
+			If lives < 0 Then lives = 0
+			invincibleTicker.Reset()
+		End
 	End
 	
 	Method Move:Void()

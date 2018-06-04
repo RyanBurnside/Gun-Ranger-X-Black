@@ -21,15 +21,17 @@ End
 Class GlowStrokeFont Extends StrokeFont
 	Public
 	Method New()
-	'0-------1--------2
-	'|                |
-	'3                4
-	'|                |
-	'5  	 6        7
-	'|                |
-	'8                9
-	'|                |
-	'10------11-------12
+	
+	'0------1------2
+	'|             |
+	'3             4
+	'|             |
+	'5      6      7
+	'|             |
+	'8             9
+	'|             |
+	'10-----11-----12
+
 	'+-------+-----+-------+
 	'| index |   x |     y |
 	'|-------+-----+-------|
@@ -76,6 +78,7 @@ Class GlowStrokeFont Extends StrokeFont
 	Local st1_3:Stroke = New Stroke(vertexBuffer[1], vertexBuffer[3])
 	Local st1_4:Stroke = New Stroke(vertexBuffer[1], vertexBuffer[4])
 	Local st1_5:Stroke = New Stroke(vertexBuffer[1], vertexBuffer[5])
+	Local st1_10:Stroke = New Stroke(vertexBuffer[1], vertexBuffer[10])
 	Local st1_11:Stroke = New Stroke(vertexBuffer[1], vertexBuffer[11])
 	Local st2_6:Stroke = New Stroke(vertexBuffer[2],vertexBuffer[6])
 	Local st2_7:Stroke = New Stroke(vertexBuffer[2],vertexBuffer[7])
@@ -115,6 +118,7 @@ Class GlowStrokeFont Extends StrokeFont
 
 	strokes = New IntMap<List<Stroke>>
 	strokes.Set(" ".ToChars()[0], New List<Stroke>)
+	strokes.Set("_".ToChars()[0], New List<Stroke>([st10_12]))
 	strokes.Set("A".ToChars()[0], New List<Stroke>([st2_10, st2_12, st6_7]))
 	strokes.Set("B".ToChars()[0], New List<Stroke>([st0_1, st1_4, st4_6,st6_5, st6_9, st9_12, st10_12, st0_10]))
 	strokes.Set("C".ToChars()[0], New List<Stroke>([st1_2, st1_5, st5_11, st11_12]))
@@ -124,7 +128,7 @@ Class GlowStrokeFont Extends StrokeFont
 	strokes.Set("G".ToChars()[0], New List<Stroke>([st1_2, st1_3, st3_8, st8_11, st11_12, st7_12, st6_7]))
 	strokes.Set("H".ToChars()[0], New List<Stroke>([st0_10, st5_7, st2_12]))
 	strokes.Set("I".ToChars()[0], New List<Stroke>([st0_2, st1_11, st10_12]))
-	strokes.Set("J".ToChars()[0], New List<Stroke>([st0_2, st1_11, st8_11, st5_8]))
+	strokes.Set("J".ToChars()[0], New List<Stroke>([st1_2, st2_9, st9_11, st8_11, st5_8]))
 	strokes.Set("K".ToChars()[0], New List<Stroke>([st0_10, st5_6, st2_6, st6_12]))
 	strokes.Set("L".ToChars()[0], New List<Stroke>([st0_10, st10_12]))
 	strokes.Set("M".ToChars()[0], New List<Stroke>([st0_10, st0_6, st2_6, st2_12]))
@@ -136,18 +140,18 @@ Class GlowStrokeFont Extends StrokeFont
 	strokes.Set("S".ToChars()[0], New List<Stroke>([st1_3, st8_11, st9_11, st1_4, st3_9]))
 	strokes.Set("T".ToChars()[0], New List<Stroke>([st0_2, st1_11]))
 	strokes.Set("U".ToChars()[0], New List<Stroke>([st0_8, st8_11, st9_11, st2_9]))
-	strokes.Set("V".ToChars()[0], New List<Stroke>([st0_12, st2_12]))
+	strokes.Set("V".ToChars()[0], New List<Stroke>([st0_10, st2_10]))
 	strokes.Set("W".ToChars()[0], New List<Stroke>([st0_10, st6_10, st6_12, st2_12]))
 	strokes.Set("X".ToChars()[0], New List<Stroke>([st0_12, st2_10]))
 	strokes.Set("Y".ToChars()[0], New List<Stroke>([st0_6, st2_10]))
 	strokes.Set("Z".ToChars()[0], New List<Stroke>([st0_2, st2_10, st10_12]))
-	strokes.Set("0".ToChars()[0], New List<Stroke>([st1_3, st3_8, st8_11, st9_11, st4_9, st1_4, st3_9]))
+	strokes.Set("0".ToChars()[0], New List<Stroke>([st1_3, st3_8, st8_11, st9_11, st4_9, st1_4, st4_8]))
 	strokes.Set("1".ToChars()[0], New List<Stroke>([st1_3, st1_11, st10_12]))
 	strokes.Set("2".ToChars()[0], New List<Stroke>([st1_3,st1_4, st4_8, st8_10, st10_12]))
 	strokes.Set("3".ToChars()[0], New List<Stroke>([st1_3, st1_4, st4_6, st6_9, st9_11, st10_11]))
 	strokes.Set("4".ToChars()[0], New List<Stroke>([st1_5, st1_11, st5_7]))
 	strokes.Set("5".ToChars()[0], New List<Stroke>([st0_2, st0_5, st5_6, st6_9, st9_11, st10_11]))
-	strokes.Set("6".ToChars()[0], New List<Stroke>([st1_2, st1_5, st5_6, st6_9, st9_11, st10_11, st5_10]))
+	strokes.Set("6".ToChars()[0], New List<Stroke>([st1_3, st3_8, st8_11, st9_11, st6_9, st5_6, st1_4]))
 	strokes.Set("7".ToChars()[0], New List<Stroke>([st0_2, st2_10]))
 	strokes.Set("8".ToChars()[0], New List<Stroke>([st1_3, st1_4, st3_9, st4_8, st8_11, st9_11]))
 	strokes.Set("9".ToChars()[0], New List<Stroke>([st1_2, st1_3, st2_7, st3_6, st6_7, st7_11]))

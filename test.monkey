@@ -51,7 +51,7 @@ Class Game Extends App
 	Field canvas:Canvas       'The game world's canvas
 	Field canvasImage:Image   'A special image bound to game world's canvas
 	
-	Field numPlaying:Int = 1
+	Field numPlaying:Int = 4
 	Field players:Player[4]
 	
 	Field mainFont:GlowStrokeFont = New GlowStrokeFont()
@@ -65,14 +65,13 @@ Class Game Extends App
 	Field screenRot:Float = 0.0
 	Field colors:RGB[6]
 	
-	Field level:Int = 12
+	Field level:Int = 16
 	
 	Method OnCreate:Int()			
 		SetUpdateRate(60)
 		Seed = Millisecs()
 		lineTexture = Image.LoadFrames("glow.png", 3.0, False, 0.5, 0.5, Image.Filter)
 		shotTexture = Image.LoadFrames("bullet_textures.png", 4, False, .5, .5, Image.Filter)
-		numPlaying = 1
 		players = [New Player(), New Player(), New Player(), New Player()]
 
 
@@ -80,7 +79,6 @@ Class Game Extends App
 
 		playerShots = New ObjectManager<Shot>
 		enemyShots = New ObjectManager<Shot>
-		'cells = New ObjectManager<Cell>
 		cellBodies = New ObjectManager<CellBody>
 		
 		canvasImage = New Image(600, 800)	
@@ -209,7 +207,16 @@ Class Game Extends App
 	End
 	
 	Method EnemyShotPlayerCheck:Void()
-
+		For Local p:Player = Eachin(players)
+			For Local s:Shot = Eachin(enemyShots.data)
+				If (Not p.IsDead()) And (Not p.GetInvincible())
+					If CirclesCollide(p.pos.x, p.pos.y, p.radius, s.pos.x, s.pos.y, s.radius) Then
+						s.dead = True
+						p.TakeLife() 'Sets invincible too to prevent additional damage
+					End
+				End
+			Next
+		Next
 	End
 	
 	Method PlayerShotCellCheck:Void()
@@ -306,10 +313,11 @@ Class Game Extends App
 			DrawShot(s)
 		Next
 
-		DrawGlowStrokeFont(32, 32, "ABCDEFGHIJKLMNO", 24.0, mainFont, canvas)
-		DrawGlowStrokeFont(32, 64, "PQRSTUVWXYZ", 24.0, mainFont, canvas)
-		DrawGlowStrokeFont(32, 96, "0123456789", 24.0, mainFont, canvas)
 		DrawGlowStrokeFont(32, 128, "WARNING WARNING", 24.0, mainFont, canvas)
+		DrawGlowStrokeFont(32, 160, "A LARGE FUCKIN BOSS APPROACH", 12.0, mainFont, canvas)
+		DrawGlowStrokeFont(32, 180, "CODENAME DEATH CONSTUPATE", 12.0, mainFont, canvas)		
+	
+		DrawRect(32, 32, 96, 64)
 				
 		canvas.Flush()
 		windowCanvas.Clear(.1, .1, .1, 1.0)
@@ -348,10 +356,28 @@ Class Game Extends App
 			can.DrawImage(lineTexture[0], x2, y2, dir)
 	End
 	
+	Method DrawRect:Void(x:Float, y:Float, x2:Float, y2:Float, can:Canvas = canvas)
+		DrawLine(x, y, x2, y)
+		DrawLine(x, y, x, y2)
+		DrawLine(x2, y, x2, y2)
+		DrawLine(x, y2, x2, y2)
+	End
+	
 	Method DrawPlayers:Void()
 		For Local i:Int = 0 To numPlaying -1
 			canvas.SetColor(players[i].color.r, players[i].color.g, players[i].color.b)
-			DrawPlayer(players[i])
+			
+			If players[i].GetInvincible() Then
+				If players[i].invincibleTicker.value Mod 4 Then
+					DrawPlayer(players[i])
+				End
+			Else
+				DrawPlayer(players[i])
+			End
+			
+			Local p:Player = players[i]
+			DrawGlowStrokeFont(p.pos.x, p.pos.y + 32, String(p.lives), 24.0)
+			
 		Next
 	End
 	
@@ -361,7 +387,7 @@ Class Game Extends App
 		Next
 	End
 	
-	Method DrawGlowStrokeFont:Void(x:Float, y:Float, s:String, scale:Float = 24.0, f:GlowStrokeFont = mainFont, can:Canvas)
+	Method DrawGlowStrokeFont:Void(x:Float, y:Float, s:String, scale:Float = 24.0, f:GlowStrokeFont = mainFont, can:Canvas = canvas)
 		Local counter:Float = 0.0
 		Local nextX:Float = x
 		For Local c:Int = Eachin s.ToChars()
