@@ -20,6 +20,10 @@ Strict
 ' Sparks from bullet hitting enemy
 ' Explosions
 
+TODO YEAH, I'M BREAKING CODE HERE ERASE THIS LINE TO COMPILE
+ENSURE THAT CELL BODY IS Not GRENERATIONAL GROWTH AN And OFFER AN EARLY Exit CONDITION If THE QUOTA OF CELLS HAS BEEN MET For NUM CELLS
+THAT'LL BE AN OPTIONAL FLAG TO BREAK WHEN NUMCELLS IS REACHED
+
 Import math
 Import hitbox
 Import shot
@@ -51,7 +55,7 @@ Class Game Extends App
 	Field canvas:Canvas       'The game world's canvas
 	Field canvasImage:Image   'A special image bound to game world's canvas
 	
-	Field numPlaying:Int = 4
+	Field numPlaying:Int = 1
 	Field players:Player[4]
 	
 	Field mainFont:GlowStrokeFont = New GlowStrokeFont()
@@ -65,7 +69,7 @@ Class Game Extends App
 	Field screenRot:Float = 0.0
 	Field colors:RGB[6]
 	
-	Field level:Int = 16
+	Field level:Int = 1
 	
 	Method OnCreate:Int()			
 		SetUpdateRate(60)
@@ -94,7 +98,31 @@ Class Game Extends App
 		Return 0
 	End
 	
+	Method ResetGame:Void()
+		ResetPlayers()
+		StartLevel(1)
+	End
+	
+	Method ResetPlayers:Void()
+		players = [New Player(), New Player(), New Player(), New Player()]
+		PositionPlayers()
+	End
+	
+	Method AllPlayersDead:Bool()
+		Local numDead:Int = 0
+		
+		For Local i:Int = 0 Until numPlaying
+			If players[i].IsDead() Then numDead += 1
+		Next
+		
+		If numDead = numPlaying Then Return True
+			
+		Return False
+
+	End
+	
 	Method StartLevel:Void(num:Int)
+		level = num
 		playerShots.data.Clear()
 		enemyShots.data.Clear()
 		cellBodies.Clear()
@@ -108,14 +136,11 @@ Class Game Extends App
 		                               canvasImage.Height() * .25)
 		Local c:Cell = New Cell(canvasImage.Width() * .5, canvasImage.Height() * .5, Rnd(0, 360), maxCellSides, cellSideLength, RndColor())
 		
-		
-		For Local i:Int = 0 To 0
 		Local boss:CellBody = New CellBody(temp.GetX(), temp.GetY(), c)
 		boss.GenerateRandomCells(num, temp.GetWidth(), temp.GetHeight())
 		boss.mover = New CellBodyMoverBoss(boss, bossMoveBox)
 		cellBodies.data.PushLast(boss)
-		Next
-		
+
 		PositionPlayers()
 	End
 	
@@ -191,6 +216,8 @@ Class Game Extends App
 			StartLevel(level * 3)
 		Endif
 		
+		If AllPlayersDead() = True Then ResetGame()
+		
 		Return 0
 	End
 	
@@ -229,6 +256,7 @@ Class Game Extends App
 	
 	Method UpdatePlayers:Void()
 		For Local i:Int = 0 To numPlaying - 1
+			If players[i].IsDead() Then Continue
 			players[i].Update()
 			ContainPlayer(players[i])
 			If players[i].shotTicker.ready Then
@@ -254,7 +282,6 @@ Class Game Extends App
 				End
 			Next
 		Next
-		'update cells
 	End
 	
 	Method ContainPlayer:Void(p:Player)
@@ -302,7 +329,6 @@ Class Game Extends App
 		
 		For Local cb:CellBody = Eachin(cellBodies.data)
 			DrawCellBody(cb)
-			'canvas.DrawCircle(cb.pos.x, cb.pos.y, 16)
 		Next
 		
 		For Local s:Shot = Eachin(enemyShots.data)
@@ -314,10 +340,8 @@ Class Game Extends App
 		Next
 
 		DrawGlowStrokeFont(32, 128, "WARNING WARNING", 24.0, mainFont, canvas)
-		DrawGlowStrokeFont(32, 160, "A LARGE FUCKIN BOSS APPROACH", 12.0, mainFont, canvas)
-		DrawGlowStrokeFont(32, 180, "CODENAME DEATH CONSTUPATE", 12.0, mainFont, canvas)		
-	
-		DrawRect(32, 32, 96, 64)
+		DrawGlowStrokeFont(32, 160, "A LARGE BOSS APPROACH", 12.0, mainFont, canvas)
+		DrawGlowStrokeFont(32, 180, "SAMPLE TEXT U SCRUB", 12.0, mainFont, canvas)		
 				
 		canvas.Flush()
 		windowCanvas.Clear(.1, .1, .1, 1.0)
@@ -434,12 +458,20 @@ Class Game Extends App
 					 cy,
 					 can)
 		Next
-		
 	End
 	
 	Method DrawCellSprite:Void(cell:Cell, can:Canvas = canvas)
 		'This draws the cell from the cell images master list
 		can.DrawImage(cellImages[cell.GetSides() - 3], cell.pos.x, cell.pos.y, -cell.GetRotDirection())
+	End
+	
+	Method DrawCellBodyHP:Void(c:CellBody)
+		Local height:Float = 16
+		Local width:Float = (canvas.Width() * .75) * c.GetHP() / Float(c.MaxHP)
+		Local x:Float = canvas.Width() * .5 - (width * .5)
+		Local y:Float = 16
+		
+		DrawRect(x, y, x + width, y + height)
 	End
 	
 	Method DrawCellBody:Void(cb:CellBody, can:Canvas = canvas)
@@ -457,7 +489,8 @@ Class Game Extends App
 			DrawCellSprite(c, can)
 		Next
 		can.SetAlpha(1.0)
-		can.PopMatrix()		
+		can.PopMatrix()
+		DrawCellBodyHP(cb)
 	End
 	
 	Method DrawShot:Void(shot:Shot)

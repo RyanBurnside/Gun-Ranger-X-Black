@@ -12,6 +12,7 @@ Class CellBody
 	Field rot:Float
 	Field dead:Bool = False
 	Field mover:CellBodyMover = Null
+	Field MaxHP:Float = 1
 	
 	Private
 	' Used internally to keep from making a lot of garbage
@@ -36,6 +37,14 @@ Class CellBody
 		cells.data = cellDeque
 	End
 	
+	Method GetHP:Int()
+		Local HP:Int = 0
+		For Local i:Cell = Eachin(cells.data)
+			HP += i.HP
+		Next
+		Return HP
+	End
+	
 	Method GenerateRandomCells:Void(numCells:Int, width:Float, height:Float, maxSides:Int = 8)
 		cells.Clear()
 		
@@ -53,6 +62,7 @@ Class CellBody
 		For Local c:Cell = Eachin(cells.data)
 			c.pos.Sub(pos)
 		Next
+		MaxHP = GetHP()
 	End
 	
 	Method Update:Void()

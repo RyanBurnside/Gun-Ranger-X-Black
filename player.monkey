@@ -15,7 +15,7 @@ Class Player
 	
 	Field pos:Vec2
 	Field speed:Float = 3
-	Field lives:Int
+	Field lives:Int = 3
 	Field shotTicker:Ticker
 	Field invincibleTicker:Ticker 'Invincible unless ticker is in Ready state
 	Field color:RGB
@@ -52,7 +52,7 @@ Class Player
 	End
 	
 	Method IsDead:Bool()
-		Return lives < 0
+		Return lives <= 0
 	End
 	
 	Method TakeLife:Void()
